@@ -28,8 +28,7 @@ type MapResponse struct {
 
 func getMapResponseBody(url string) ([]byte, error) {
 	if cache == nil {
-		newCache := NewCache(5 * time.Second)
-		cache = &newCache
+		cache = NewCache(5 * time.Second)
 	}
 	body, ok := cache.Get(url)
 	if ok {
