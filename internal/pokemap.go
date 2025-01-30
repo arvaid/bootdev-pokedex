@@ -6,12 +6,15 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"time"
 )
 
 const (
 	API_BASE_URL = "https://pokeapi.co/api/v2"
 	API_MAP_URL  = "/location-area"
 )
+
+var cache *Cache
 
 type MapResponse struct {
 	Count    int    `json:"count"`
@@ -23,23 +26,40 @@ type MapResponse struct {
 	} `json:"results"`
 }
 
-func getMapData(url string) (MapResponse, error) {
+func getMapResponseBody(url string) ([]byte, error) {
+	if cache == nil {
+		newCache := NewCache(5 * time.Second)
+		cache = &newCache
+	}
+	body, ok := cache.Get(url)
+	if ok {
+		return body, nil
+	}
 	res, err := http.Get(url)
 	if err != nil {
-		return MapResponse{}, err
+		return nil, err
 	}
-	body, err := io.ReadAll(res.Body)
+	body, err = io.ReadAll(res.Body)
 	defer res.Body.Close()
 	if res.StatusCode > 299 {
 		log.Fatalf("Response failed, statuscode: %d, body: %s\n", res.StatusCode, res.Body)
 	}
 	if err != nil {
-		return MapResponse{}, err
+		return nil, err
 	}
+	cache.Add(url, body)
+	return body, nil
+}
+
+func getMapData(url string) (MapResponse, error) {
 	resp := MapResponse{}
+	body, err := getMapResponseBody(url)
+	if err != nil {
+		return resp, err
+	}
 	err = json.Unmarshal(body, &resp)
 	if err != nil {
-		return MapResponse{}, err
+		return resp, err
 	}
 
 	return resp, nil
