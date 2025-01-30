@@ -3,12 +3,23 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"github.com/arvaid/pokedex/internal"
 	"os"
 	"strings"
 )
 
 func main() {
 	commands = map[string]cliCommand{
+		"map": {
+			name:        "map",
+			description: "Displays next 20 locations",
+			callback:    commandMap,
+		},
+		"mapb": {
+			name:        "mapb",
+			description: "Displays previous 20 locations",
+			callback:    commandMapB,
+		},
 		"help": {
 			name:        "help",
 			description: "Displays a help message",
@@ -22,6 +33,7 @@ func main() {
 	}
 
 	scanner := bufio.NewScanner(os.Stdin)
+	cfg := config{}
 	for {
 		fmt.Print("Pokedex > ")
 		if !scanner.Scan() {
@@ -31,7 +43,7 @@ func main() {
 		input := cleanInput(line)
 		command := input[0]
 		if cmd, ok := commands[command]; ok {
-			cmd.callback()
+			cmd.callback(&cfg)
 		} else {
 			fmt.Println("Unknown command")
 		}
@@ -42,12 +54,37 @@ func main() {
 type cliCommand struct {
 	name        string
 	description string
-	callback    func() error
+	callback    func(cfg *config) error
 }
 
 var commands map[string]cliCommand
 
-func commandHelp() error {
+type config struct {
+	Next     string
+	Previous string
+}
+
+func commandMap(cfg *config) error {
+	next, prev, err := internal.GetNextMap(cfg.Next)
+	if err != nil {
+		return err
+	}
+	cfg.Next = next
+	cfg.Previous = prev
+	return nil
+}
+
+func commandMapB(cfg *config) error {
+	next, prev, err := internal.GetNextMap(cfg.Previous)
+	if err != nil {
+		return err
+	}
+	cfg.Next = next
+	cfg.Previous = prev
+	return nil
+}
+
+func commandHelp(cfg *config) error {
 	fmt.Println("Welcome to the Pokedex!\nUsage:")
 	fmt.Println()
 	for cmdName, cmd := range commands {
@@ -56,7 +93,7 @@ func commandHelp() error {
 	return nil
 }
 
-func commandExit() error {
+func commandExit(cfg *config) error {
 	fmt.Println("Closing the Pokedex... Goodbye!")
 	os.Exit(0)
 	return nil
