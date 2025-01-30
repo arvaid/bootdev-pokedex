@@ -10,6 +10,11 @@ import (
 
 func main() {
 	commands = map[string]cliCommand{
+		"explore": {
+			name:        "explore <area_name>",
+			description: "List Pokemon encounters in an area",
+			callback:    commandExplore,
+		},
 		"map": {
 			name:        "map",
 			description: "Displays next 20 locations",
@@ -41,9 +46,12 @@ func main() {
 		}
 		line := scanner.Text()
 		input := cleanInput(line)
-		command := input[0]
+		command, args := input[0], input[1:]
 		if cmd, ok := commands[command]; ok {
-			cmd.callback(&cfg)
+			err := cmd.callback(&cfg, args...)
+			if err != nil {
+				fmt.Println(err)
+			}
 		} else {
 			fmt.Println("Unknown command")
 		}
@@ -54,7 +62,7 @@ func main() {
 type cliCommand struct {
 	name        string
 	description string
-	callback    func(cfg *config) error
+	callback    func(cfg *config, args ...string) error
 }
 
 var commands map[string]cliCommand
@@ -64,36 +72,62 @@ type config struct {
 	Previous string
 }
 
-func commandMap(cfg *config) error {
-	next, prev, err := internal.GetNextMap(cfg.Next)
+func commandExplore(_ *config, args ...string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("Missing location argument")
+	}
+	area := args[0]
+	fmt.Printf("Exploring %s\n", area)
+
+	pokemons, err := internal.Explore(area)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Found Pokemon:")
+	for _, pokemon := range pokemons {
+		fmt.Printf(" - %s\n", pokemon)
+	}
+
+	return nil
+}
+
+func commandMap(cfg *config, args ...string) error {
+	areas, next, prev, err := internal.GetMap(cfg.Next)
 	if err != nil {
 		return err
 	}
 	cfg.Next = next
 	cfg.Previous = prev
+	for _, area := range areas {
+		fmt.Println(area)
+	}
 	return nil
 }
 
-func commandMapB(cfg *config) error {
-	next, prev, err := internal.GetNextMap(cfg.Previous)
+func commandMapB(cfg *config, args ...string) error {
+	areas, next, prev, err := internal.GetMap(cfg.Previous)
 	if err != nil {
 		return err
 	}
 	cfg.Next = next
 	cfg.Previous = prev
+	for _, area := range areas {
+		fmt.Println(area)
+	}
 	return nil
 }
 
-func commandHelp(cfg *config) error {
+func commandHelp(cfg *config, args ...string) error {
 	fmt.Println("Welcome to the Pokedex!\nUsage:")
 	fmt.Println()
-	for cmdName, cmd := range commands {
-		fmt.Printf("%s: %s\n", cmdName, cmd.description)
+	for _, cmd := range commands {
+		fmt.Printf("%s: %s\n", cmd.name, cmd.description)
 	}
 	return nil
 }
 
-func commandExit(cfg *config) error {
+func commandExit(cfg *config, args ...string) error {
 	fmt.Println("Closing the Pokedex... Goodbye!")
 	os.Exit(0)
 	return nil
