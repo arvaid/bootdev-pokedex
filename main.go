@@ -10,6 +10,11 @@ import (
 
 func main() {
 	commands = map[string]cliCommand{
+		"catch": {
+			name:        "catch <pokemon_name>",
+			description: "Throw Pokeball at pokemon",
+			callback:    commandCatch,
+		},
 		"explore": {
 			name:        "explore <area_name>",
 			description: "List Pokemon encounters in an area",
@@ -70,6 +75,23 @@ var commands map[string]cliCommand
 type config struct {
 	Next     string
 	Previous string
+}
+
+func commandCatch(_ *config, args ...string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("Missing Pokemon argument")
+	}
+	pokemon := args[0]
+	fmt.Printf("Throwing a Pokeball at %s...\n", pokemon)
+
+	catch := internal.Catch(pokemon)
+	if catch {
+		fmt.Printf("%s was caught!\n", pokemon)
+	} else {
+		fmt.Printf("%s escaped!\n", pokemon)
+	}
+
+	return nil
 }
 
 func commandExplore(_ *config, args ...string) error {
