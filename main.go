@@ -10,6 +10,11 @@ import (
 
 func main() {
 	commands = map[string]cliCommand{
+		"pokedex": {
+			name:        "pokedex",
+			description: "List captured Pokemon",
+			callback:    commandPokedex,
+		},
 		"inspect": {
 			name:        "inspect <pokemon_name>",
 			description: "Inspect Pokemon",
@@ -83,6 +88,14 @@ type config struct {
 	Next     string
 	Previous string
 	Pokedex  map[string]internal.Pokemon
+}
+
+func commandPokedex(cfg *config, _ ...string) error {
+	fmt.Println("Your Pokedex:")
+	for _, pokemon := range cfg.Pokedex {
+		fmt.Printf(" - %s\n", pokemon.Name)
+	}
+	return nil
 }
 
 func commandInspect(cfg *config, args ...string) error {
