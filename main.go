@@ -10,6 +10,11 @@ import (
 
 func main() {
 	commands = map[string]cliCommand{
+		"inspect": {
+			name:        "inspect <pokemon_name>",
+			description: "Inspect Pokemon",
+			callback:    commandInspect,
+		},
 		"catch": {
 			name:        "catch <pokemon_name>",
 			description: "Throw Pokeball at pokemon",
@@ -78,6 +83,33 @@ type config struct {
 	Next     string
 	Previous string
 	Pokedex  map[string]internal.Pokemon
+}
+
+func commandInspect(cfg *config, args ...string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("Missing Pokemon argument")
+	}
+	pokemonName := args[0]
+	pokemon, ok := cfg.Pokedex[pokemonName]
+	if !ok {
+		fmt.Println("you have not caught that pokemon")
+		return nil
+	}
+
+	fmt.Printf("Name: %s\n", pokemon.Name)
+	fmt.Printf("Height: %d\n", pokemon.Height)
+	fmt.Printf("Weight: %d\n", pokemon.Weight)
+	fmt.Println("Stats:")
+	for _, stat := range pokemon.Stats {
+		fmt.Printf(" -%s: %d\n", stat.Stat.Name, stat.BaseStat)
+	}
+	//fmt.Printf(" -hp:%d\n", pokemon.Stats)
+	fmt.Println("Types:")
+	for _, pokemonType := range pokemon.Types {
+		fmt.Printf(" - %s\n", pokemonType.Type.Name)
+	}
+
+	return nil
 }
 
 func commandCatch(cfg *config, args ...string) error {
