@@ -43,7 +43,9 @@ func main() {
 	}
 
 	scanner := bufio.NewScanner(os.Stdin)
-	cfg := config{}
+	cfg := config{
+		Pokedex: map[string]internal.Pokemon{},
+	}
 	for {
 		fmt.Print("Pokedex > ")
 		if !scanner.Scan() {
@@ -75,20 +77,22 @@ var commands map[string]cliCommand
 type config struct {
 	Next     string
 	Previous string
+	Pokedex  map[string]internal.Pokemon
 }
 
-func commandCatch(_ *config, args ...string) error {
+func commandCatch(cfg *config, args ...string) error {
 	if len(args) < 1 {
 		return fmt.Errorf("Missing Pokemon argument")
 	}
-	pokemon := args[0]
-	fmt.Printf("Throwing a Pokeball at %s...\n", pokemon)
+	pokemonName := args[0]
+	fmt.Printf("Throwing a Pokeball at %s...\n", pokemonName)
 
-	catch := internal.Catch(pokemon)
-	if catch {
-		fmt.Printf("%s was caught!\n", pokemon)
+	pokemon, caught := internal.Catch(pokemonName)
+	if caught {
+		cfg.Pokedex[pokemonName] = pokemon
+		fmt.Printf("%s was caught!\n", pokemonName)
 	} else {
-		fmt.Printf("%s escaped!\n", pokemon)
+		fmt.Printf("%s escaped!\n", pokemonName)
 	}
 
 	return nil
