@@ -2,8 +2,8 @@ package internal
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
-	"log"
 	"math/rand"
 	"net/http"
 	"time"
@@ -21,16 +21,12 @@ func GetMap(url string) ([]string, string, string, error) {
 	if url == "" {
 		url = API_BASE_URL + API_AREA_ENDPOINT
 	}
-	body, ok := getCachedResponseBody(url)
-	if !ok {
-		var err error
-		body, err = getHTTPResponseBody(url)
-		if err != nil {
-			return nil, "", "", err
-		}
+	body, err := getResponseBody(url)
+	if err != nil {
+		return nil, "", "", err
 	}
 	data := AreaList{}
-	err := json.Unmarshal(body, &data)
+	err = json.Unmarshal(body, &data)
 	if err != nil {
 		return nil, "", "", err
 	}
@@ -45,16 +41,12 @@ func GetMap(url string) ([]string, string, string, error) {
 
 func Explore(area string) ([]string, error) {
 	url := API_BASE_URL + API_AREA_ENDPOINT + "/" + area
-	body, ok := getCachedResponseBody(url)
-	if !ok {
-		var err error
-		body, err = getHTTPResponseBody(url)
-		if err != nil {
-			return nil, err
-		}
+	body, err := getResponseBody(url)
+	if err != nil {
+		return nil, err
 	}
 	data := Area{}
-	err := json.Unmarshal(body, &data)
+	err = json.Unmarshal(body, &data)
 	if err != nil {
 		return nil, err
 	}
@@ -70,15 +62,11 @@ func Explore(area string) ([]string, error) {
 func Catch(pokemonName string) (Pokemon, bool) {
 	data := Pokemon{}
 	url := API_BASE_URL + API_POKEMON_ENDPOINT + "/" + pokemonName
-	body, ok := getCachedResponseBody(url)
-	if !ok {
-		var err error
-		body, err = getHTTPResponseBody(url)
-		if err != nil {
-			return data, false
-		}
+	body, err := getResponseBody(url)
+	if err != nil {
+		return data, false
 	}
-	err := json.Unmarshal(body, &data)
+	err = json.Unmarshal(body, &data)
 	if err != nil {
 		return data, false
 	}
@@ -94,6 +82,18 @@ func getCachedResponseBody(url string) ([]byte, bool) {
 	return body, ok
 }
 
+func getResponseBody(url string) ([]byte, error) {
+	body, ok := getCachedResponseBody(url)
+	if ok {
+		return body, nil
+	}
+	body, err := getHTTPResponseBody(url)
+	if err != nil {
+		return nil, err
+	}
+	return body, nil
+}
+
 func getHTTPResponseBody(url string) ([]byte, error) {
 	res, err := http.Get(url)
 	if err != nil {
@@ -102,7 +102,10 @@ func getHTTPResponseBody(url string) ([]byte, error) {
 	body, err := io.ReadAll(res.Body)
 	defer res.Body.Close()
 	if res.StatusCode > 299 {
-		log.Fatalf("Response failed, statuscode: %d, body: %s\n", res.StatusCode, res.Body)
+		return nil, fmt.Errorf("response failed, statuscode: %d, body: %s", res.StatusCode, res.Body)
+	}
+	if err != nil {
+		return nil, err
 	}
 	initCache()
 	cache.Add(url, body)
